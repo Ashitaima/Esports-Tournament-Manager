@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Computational_Practice.Data.Context;
 using Computational_Practice.Data;
 using Computational_Practice.Data.Interfaces;
+using Computational_Practice.Services.Interfaces;
+using Computational_Practice.Services;
+using Computational_Practice.Mappings;
 
 namespace Computational_Practice
 {
@@ -16,6 +19,14 @@ namespace Computational_Practice
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            builder.Services.AddScoped<ITournamentService, TournamentService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<ITeamService, TeamService>();
+            builder.Services.AddScoped<IPlayerService, PlayerService>();
+            builder.Services.AddScoped<IMatchService, MatchService>();
+
+            builder.Services.AddAutoMapper(typeof(MappingProfile));
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
