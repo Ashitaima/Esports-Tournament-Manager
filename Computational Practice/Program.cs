@@ -1,12 +1,13 @@
 
 using Microsoft.EntityFrameworkCore;
 using Computational_Practice.Data.Context;
+using Computational_Practice.Data;
 
 namespace Computational_Practice
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,14 @@ namespace Computational_Practice
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
+
+            // Сідінг бази даних
+            using (var scope = app.Services.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<EsportsDbContext>();
+                await DbSeeder.SeedAsync(context);
+            }
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -32,7 +41,6 @@ namespace Computational_Practice
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
