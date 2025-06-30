@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Computational_Practice.Data.Context;
+using Computational_Practice.Data.Interfaces;
 using Computational_Practice.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace Computational_Practice.Controllers
 {
@@ -9,30 +8,21 @@ namespace Computational_Practice.Controllers
     [Route("api/[controller]")]
     public class TournamentsController : ControllerBase
     {
-        private readonly EsportsDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<TournamentsController> _logger;
 
-        public TournamentsController(EsportsDbContext context, ILogger<TournamentsController> logger)
+        public TournamentsController(IUnitOfWork unitOfWork, ILogger<TournamentsController> logger)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
             _logger = logger;
         }
 
-        /// <summary>
-        /// Отримати всі турніри
-        /// </summary>
-        /// <returns>Список турнірів</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Tournament>>> GetTournaments()
         {
             try
             {
-                var tournaments = await _context.Tournaments
-                    .Include(t => t.Organizer)
-                    .Where(t => t.IsActive)
-                    .OrderByDescending(t => t.CreatedAt)
-                    .ToListAsync();
-
+                var tournaments = await _unitOfWork.Tournaments.GetActiveAsync();
                 return Ok(tournaments);
             }
             catch (Exception ex)
@@ -42,20 +32,12 @@ namespace Computational_Practice.Controllers
             }
         }
 
-        /// <summary>
-        /// Отримати турнір за ID
-        /// </summary>
-        /// <param name="id">ID турніру</param>
-        /// <returns>Турнір</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<Tournament>> GetTournament(int id)
         {
             try
             {
-                var tournament = await _context.Tournaments
-                    .Include(t => t.Organizer)
-                    .Include(t => t.Matches)
-                    .FirstOrDefaultAsync(t => t.Id == id);
+                var tournament = await _unitOfWork.Tournaments.GetWithMatchesAsync(id);
 
                 if (tournament == null)
                 {
@@ -71,22 +53,12 @@ namespace Computational_Practice.Controllers
             }
         }
 
-        /// <summary>
-        /// Отримати турніри за статусом
-        /// </summary>
-        /// <param name="status">Статус турніру (Registration, Active, Completed, Cancelled)</param>
-        /// <returns>Список турнірів з вказаним статусом</returns>
         [HttpGet("status/{status}")]
         public async Task<ActionResult<IEnumerable<Tournament>>> GetTournamentsByStatus(string status)
         {
             try
             {
-                var tournaments = await _context.Tournaments
-                    .Include(t => t.Organizer)
-                    .Where(t => t.Status == status && t.IsActive)
-                    .OrderByDescending(t => t.CreatedAt)
-                    .ToListAsync();
-
+                var tournaments = await _unitOfWork.Tournaments.GetByStatusAsync(status);
                 return Ok(tournaments);
             }
             catch (Exception ex)
@@ -96,31 +68,22 @@ namespace Computational_Practice.Controllers
             }
         }
 
-        /// <summary>
-        /// Отримати статистику турнірів
-        /// </summary>
-        /// <returns>Статистика по турнірах</returns>
         [HttpGet("stats")]
         public async Task<ActionResult> GetTournamentStats()
         {
             try
             {
+                var totalActive = await _unitOfWork.Tournaments.CountAsync(t => t.IsActive);
+                var activeCount = await _unitOfWork.Tournaments.CountAsync(t => t.Status == "Active" && t.IsActive);
+                var completedCount = await _unitOfWork.Tournaments.CountAsync(t => t.Status == "Completed" && t.IsActive);
+                var registrationCount = await _unitOfWork.Tournaments.CountAsync(t => t.Status == "Registration" && t.IsActive);
+
                 var stats = new
                 {
-                    TotalTournaments = await _context.Tournaments.CountAsync(t => t.IsActive),
-                    ActiveTournaments = await _context.Tournaments.CountAsync(t => t.Status == "Active" && t.IsActive),
-                    CompletedTournaments = await _context.Tournaments.CountAsync(t => t.Status == "Completed" && t.IsActive),
-                    RegistrationOpen = await _context.Tournaments.CountAsync(t => t.Status == "Registration" && t.IsActive),
-                    TotalPrizePool = await _context.Tournaments
-                        .Where(t => t.IsActive && t.PrizePool > 0)
-                        .SumAsync(t => t.PrizePool),
-                    PopularGames = await _context.Tournaments
-                        .Where(t => t.IsActive)
-                        .GroupBy(t => t.Game)
-                        .Select(g => new { Game = g.Key, Count = g.Count() })
-                        .OrderByDescending(x => x.Count)
-                        .Take(5)
-                        .ToListAsync()
+                    TotalTournaments = totalActive,
+                    ActiveTournaments = activeCount,
+                    CompletedTournaments = completedCount,
+                    RegistrationOpen = registrationCount
                 };
 
                 return Ok(stats);

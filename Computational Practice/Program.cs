@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Computational_Practice.Data.Context;
 using Computational_Practice.Data;
+using Computational_Practice.Data.Interfaces;
 
 namespace Computational_Practice
 {
@@ -11,14 +12,12 @@ namespace Computational_Practice
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
-            // Налаштування Entity Framework та PostgreSQL
             builder.Services.AddDbContext<EsportsDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
