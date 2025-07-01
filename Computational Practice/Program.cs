@@ -6,6 +6,9 @@ using Computational_Practice.Data.Interfaces;
 using Computational_Practice.Services.Interfaces;
 using Computational_Practice.Services;
 using Computational_Practice.Mappings;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Computational_Practice.Validators;
 
 namespace Computational_Practice
 {
@@ -27,6 +30,10 @@ namespace Computational_Practice
             builder.Services.AddScoped<IMatchService, MatchService>();
 
             builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddFluentValidationClientsideAdapters();
+            builder.Services.AddValidatorsFromAssemblyContaining<CreateUserValidator>();
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
