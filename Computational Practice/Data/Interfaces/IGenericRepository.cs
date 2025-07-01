@@ -6,6 +6,7 @@ namespace Computational_Practice.Data.Interfaces
     {
         Task<T?> GetByIdAsync(int id);
         Task<IEnumerable<T>> GetAllAsync();
+        IQueryable<T> GetQueryable();
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> expression);
         Task<T?> GetFirstOrDefaultAsync(Expression<Func<T, bool>> expression);
         Task AddAsync(T entity);

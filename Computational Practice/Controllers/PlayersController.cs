@@ -1,5 +1,7 @@
 using Computational_Practice.DTOs;
 using Computational_Practice.Services.Interfaces;
+using Computational_Practice.Common;
+using Computational_Practice.Common.Filters;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Computational_Practice.Controllers
@@ -28,6 +30,21 @@ namespace Computational_Practice.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Помилка при отриманні списку гравців");
+                return StatusCode(500, "Внутрішня помилка сервера");
+            }
+        }
+
+        [HttpGet("paged")]
+        public async Task<ActionResult<PagedResponse<PlayerDto>>> GetPagedPlayers([FromQuery] PlayerFilter filter)
+        {
+            try
+            {
+                var players = await _playerService.GetPagedAsync(filter, filter);
+                return Ok(players);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка при отриманні списку гравців з пагінацією");
                 return StatusCode(500, "Внутрішня помилка сервера");
             }
         }

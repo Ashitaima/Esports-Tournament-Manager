@@ -1,10 +1,13 @@
 using Computational_Practice.DTOs;
+using Computational_Practice.Common;
+using Computational_Practice.Common.Filters;
 
 namespace Computational_Practice.Services.Interfaces
 {
     public interface IMatchService
     {
         Task<IEnumerable<MatchDto>> GetAllAsync();
+        Task<PagedResponse<MatchDto>> GetPagedAsync(PagedRequest request, MatchFilter? filter = null);
         Task<MatchDto?> GetByIdAsync(int id);
         Task<MatchDto?> GetWithDetailsAsync(int id);
         Task<IEnumerable<MatchDto>> GetByTournamentAsync(int tournamentId);

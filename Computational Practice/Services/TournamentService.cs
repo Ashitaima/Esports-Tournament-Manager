@@ -3,6 +3,10 @@ using Computational_Practice.Data.Interfaces;
 using Computational_Practice.DTOs;
 using Computational_Practice.Models;
 using Computational_Practice.Services.Interfaces;
+using Computational_Practice.Common;
+using Computational_Practice.Common.Filters;
+using Computational_Practice.Extensions;
+using Computational_Practice.Exceptions;
 
 namespace Computational_Practice.Services
 {
@@ -72,7 +76,8 @@ namespace Computational_Practice.Services
         public async Task<TournamentDto?> UpdateAsync(int id, UpdateTournamentDto updateDto)
         {
             var tournament = await _unitOfWork.Tournaments.GetByIdAsync(id);
-            if (tournament == null) return null;
+            if (tournament == null)
+                throw new EntityNotFoundException("Tournament", id);
 
             _mapper.Map(updateDto, tournament);
             _unitOfWork.Tournaments.Update(tournament);
@@ -84,7 +89,8 @@ namespace Computational_Practice.Services
         public async Task<bool> DeleteAsync(int id)
         {
             var tournament = await _unitOfWork.Tournaments.GetByIdAsync(id);
-            if (tournament == null) return false;
+            if (tournament == null)
+                throw new EntityNotFoundException("Tournament", id);
 
             tournament.IsActive = false;
             _unitOfWork.Tournaments.Update(tournament);
@@ -117,6 +123,58 @@ namespace Computational_Practice.Services
                 RegistrationOpen = registrationCount,
                 TotalPrizePool = totalPrizePool,
                 PopularGames = popularGames
+            };
+        }
+
+        public async Task<PagedResponse<TournamentDto>> GetPagedAsync(TournamentFilter filter)
+        {
+            var query = (await _unitOfWork.Tournaments.GetAllAsync()).AsQueryable();
+
+            // Застосовуємо фільтри
+            if (!string.IsNullOrEmpty(filter.Status))
+                query = query.Where(t => t.Status == filter.Status);
+
+            if (!string.IsNullOrEmpty(filter.Game))
+                query = query.Where(t => t.Game.Contains(filter.Game));
+
+            if (filter.StartDateFrom.HasValue)
+                query = query.Where(t => t.StartDate >= filter.StartDateFrom.Value);
+
+            if (filter.StartDateTo.HasValue)
+                query = query.Where(t => t.StartDate <= filter.StartDateTo.Value);
+
+            if (filter.MinPrizePool.HasValue)
+                query = query.Where(t => t.PrizePool >= filter.MinPrizePool.Value);
+
+            if (filter.MaxPrizePool.HasValue)
+                query = query.Where(t => t.PrizePool <= filter.MaxPrizePool.Value);
+
+            if (filter.IsActive.HasValue)
+                query = query.Where(t => t.IsActive == filter.IsActive.Value);
+
+            if (filter.OrganizerId.HasValue)
+                query = query.Where(t => t.OrganizerId == filter.OrganizerId.Value);
+
+            // Застосовуємо пошук
+            query = query.ApplySearch(filter.Search, "Name", "Description", "Game");
+
+            // Застосовуємо сортування
+            query = query.ApplySorting(filter.SortBy, filter.SortDirection);
+
+            // Отримуємо загальну кількість
+            var totalCount = query.Count();
+
+            // Застосовуємо пагінацію
+            var data = query.ApplyPaging(filter).ToList();
+
+            var tournamentDtos = _mapper.Map<IEnumerable<TournamentDto>>(data);
+
+            return new PagedResponse<TournamentDto>
+            {
+                Data = tournamentDtos,
+                TotalCount = totalCount,
+                Page = filter.Page,
+                PageSize = filter.PageSize
             };
         }
     }

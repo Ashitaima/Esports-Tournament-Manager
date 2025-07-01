@@ -1,10 +1,13 @@
 using Computational_Practice.DTOs;
+using Computational_Practice.Common;
+using Computational_Practice.Common.Filters;
 
 namespace Computational_Practice.Services.Interfaces
 {
     public interface IPlayerService
     {
         Task<IEnumerable<PlayerDto>> GetAllAsync();
+        Task<PagedResponse<PlayerDto>> GetPagedAsync(PagedRequest request, PlayerFilter? filter = null);
         Task<PlayerDto?> GetByIdAsync(int id);
         Task<PlayerDto?> GetWithTeamAsync(int id);
         Task<PlayerDto?> GetWithMatchesAsync(int id);

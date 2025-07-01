@@ -3,6 +3,9 @@ using Computational_Practice.Data.Interfaces;
 using Computational_Practice.DTOs;
 using Computational_Practice.Models;
 using Computational_Practice.Services.Interfaces;
+using Computational_Practice.Common;
+using Computational_Practice.Common.Filters;
+using Computational_Practice.Extensions;
 
 namespace Computational_Practice.Services
 {
@@ -21,6 +24,61 @@ namespace Computational_Practice.Services
         {
             var players = await _unitOfWork.Players.GetAllAsync();
             return _mapper.Map<IEnumerable<PlayerDto>>(players);
+        }
+
+        public async Task<PagedResponse<PlayerDto>> GetPagedAsync(PagedRequest request, PlayerFilter? filter = null)
+        {
+            var query = _unitOfWork.Players.GetQueryable();
+
+            if (filter != null)
+            {
+                if (!string.IsNullOrEmpty(filter.Position))
+                {
+                    query = query.Where(p => p.Position == filter.Position);
+                }
+
+                if (!string.IsNullOrEmpty(filter.Country))
+                {
+                    query = query.Where(p => p.Country == filter.Country);
+                }
+
+                if (filter.MinAge.HasValue)
+                {
+                    query = query.Where(p => p.Age >= filter.MinAge.Value);
+                }
+
+                if (filter.MaxAge.HasValue)
+                {
+                    query = query.Where(p => p.Age <= filter.MaxAge.Value);
+                }
+
+                if (filter.TeamId.HasValue)
+                {
+                    query = query.Where(p => p.TeamId == filter.TeamId.Value);
+                }
+
+                if (filter.IsActive.HasValue)
+                {
+                    query = query.Where(p => p.IsActive == filter.IsActive.Value);
+                }
+
+                if (filter.FreeAgents.HasValue && filter.FreeAgents.Value)
+                {
+                    query = query.Where(p => p.TeamId == null);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.Search))
+            {
+                query = query.ApplySearch(request.Search, "Nickname");
+            }
+
+            if (!string.IsNullOrEmpty(request.SortBy))
+            {
+                query = query.ApplySorting(request.SortBy, request.SortDirection);
+            }
+
+            return await query.ToPagedResponseAsync<Player, PlayerDto>(request, _mapper);
         }
 
         public async Task<PlayerDto?> GetByIdAsync(int id)

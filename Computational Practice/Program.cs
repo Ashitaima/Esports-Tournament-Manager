@@ -6,6 +6,7 @@ using Computational_Practice.Data.Interfaces;
 using Computational_Practice.Services.Interfaces;
 using Computational_Practice.Services;
 using Computational_Practice.Mappings;
+using Computational_Practice.Middleware;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Computational_Practice.Validators;
@@ -54,6 +55,8 @@ namespace Computational_Practice
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+            app.UseMiddleware<ExceptionMiddleware>();
 
             app.UseHttpsRedirection();
 

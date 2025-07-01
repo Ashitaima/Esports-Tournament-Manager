@@ -1,6 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
 using Computational_Practice.DTOs;
 using Computational_Practice.Services.Interfaces;
+using Computational_Practice.Common;
+using Computational_Practice.Common.Filters;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Computational_Practice.Controllers
 {
@@ -20,122 +22,63 @@ namespace Computational_Practice.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournaments()
         {
-            try
-            {
-                var tournaments = await _tournamentService.GetAllActiveAsync();
-                return Ok(tournaments);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Помилка при отриманні списку турнірів");
-                return StatusCode(500, "Внутрішня помилка сервера");
-            }
+            var tournaments = await _tournamentService.GetAllActiveAsync();
+            return Ok(tournaments);
+        }
+
+        [HttpGet("paged")]
+        public async Task<ActionResult<PagedResponse<TournamentDto>>> GetPagedTournaments([FromQuery] TournamentFilter filter)
+        {
+            var tournaments = await _tournamentService.GetPagedAsync(filter);
+            return Ok(tournaments);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<TournamentDto>> GetTournament(int id)
         {
-            try
-            {
-                var tournament = await _tournamentService.GetWithMatchesAsync(id);
+            var tournament = await _tournamentService.GetWithMatchesAsync(id);
 
-                if (tournament == null)
-                {
-                    return NotFound($"Турнір з ID {id} не знайдено");
-                }
-
-                return Ok(tournament);
-            }
-            catch (Exception ex)
+            if (tournament == null)
             {
-                _logger.LogError(ex, "Помилка при отриманні турніру з ID {TournamentId}", id);
-                return StatusCode(500, "Внутрішня помилка сервера");
+                return NotFound($"Турнір з ID {id} не знайдено");
             }
+
+            return Ok(tournament);
         }
 
         [HttpGet("status/{status}")]
         public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournamentsByStatus(string status)
         {
-            try
-            {
-                var tournaments = await _tournamentService.GetByStatusAsync(status);
-                return Ok(tournaments);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Помилка при отриманні турнірів зі статусом {Status}", status);
-                return StatusCode(500, "Внутрішня помилка сервера");
-            }
+            var tournaments = await _tournamentService.GetByStatusAsync(status);
+            return Ok(tournaments);
         }
 
         [HttpGet("stats")]
         public async Task<ActionResult<TournamentStatsDto>> GetTournamentStats()
         {
-            try
-            {
-                var stats = await _tournamentService.GetStatsAsync();
-                return Ok(stats);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Помилка при отриманні статистики турнірів");
-                return StatusCode(500, "Внутрішня помилка сервера");
-            }
+            var stats = await _tournamentService.GetStatsAsync();
+            return Ok(stats);
         }
 
         [HttpPost]
         public async Task<ActionResult<TournamentDto>> CreateTournament([FromBody] CreateTournamentDto createDto)
         {
-            try
-            {
-                var tournament = await _tournamentService.CreateAsync(createDto);
-                return CreatedAtAction(nameof(GetTournament), new { id = tournament.Id }, tournament);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Помилка при створенні турніру");
-                return StatusCode(500, "Внутрішня помилка сервера");
-            }
+            var tournament = await _tournamentService.CreateAsync(createDto);
+            return CreatedAtAction(nameof(GetTournament), new { id = tournament.Id }, tournament);
         }
 
         [HttpPut("{id}")]
         public async Task<ActionResult<TournamentDto>> UpdateTournament(int id, [FromBody] UpdateTournamentDto updateDto)
         {
-            try
-            {
-                var tournament = await _tournamentService.UpdateAsync(id, updateDto);
-                if (tournament == null)
-                {
-                    return NotFound($"Турнір з ID {id} не знайдено");
-                }
-
-                return Ok(tournament);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Помилка при оновленні турніру з ID {TournamentId}", id);
-                return StatusCode(500, "Внутрішня помилка сервера");
-            }
+            var tournament = await _tournamentService.UpdateAsync(id, updateDto);
+            return Ok(tournament);
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteTournament(int id)
         {
-            try
-            {
-                var result = await _tournamentService.DeleteAsync(id);
-                if (!result)
-                {
-                    return NotFound($"Турнір з ID {id} не знайдено");
-                }
-
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Помилка при видаленні турніру з ID {TournamentId}", id);
-                return StatusCode(500, "Внутрішня помилка сервера");
-            }
+            await _tournamentService.DeleteAsync(id);
+            return NoContent();
         }
     }
 }

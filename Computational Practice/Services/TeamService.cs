@@ -3,6 +3,9 @@ using Computational_Practice.Data.Interfaces;
 using Computational_Practice.DTOs;
 using Computational_Practice.Models;
 using Computational_Practice.Services.Interfaces;
+using Computational_Practice.Common;
+using Computational_Practice.Common.Filters;
+using Computational_Practice.Extensions;
 
 namespace Computational_Practice.Services
 {
@@ -21,6 +24,46 @@ namespace Computational_Practice.Services
         {
             var teams = await _unitOfWork.Teams.GetAllAsync();
             return _mapper.Map<IEnumerable<TeamDto>>(teams);
+        }
+
+        public async Task<PagedResponse<TeamDto>> GetPagedAsync(PagedRequest request, TeamFilter? filter = null)
+        {
+            var query = _unitOfWork.Teams.GetQueryable();
+
+            if (filter != null)
+            {
+                if (!string.IsNullOrEmpty(filter.Name))
+                {
+                    query = query.Where(t => t.Name.Contains(filter.Name));
+                }
+
+                if (filter.TournamentId.HasValue)
+                {
+                    query = query.Where(t => t.Tournaments.Any(tour => tour.Id == filter.TournamentId.Value));
+                }
+
+                if (filter.MinPlayersCount.HasValue)
+                {
+                    query = query.Where(t => t.Players.Count >= filter.MinPlayersCount.Value);
+                }
+
+                if (filter.MaxPlayersCount.HasValue)
+                {
+                    query = query.Where(t => t.Players.Count <= filter.MaxPlayersCount.Value);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.Search))
+            {
+                query = query.ApplySearch(request.Search, "Name");
+            }
+
+            if (!string.IsNullOrEmpty(request.SortBy))
+            {
+                query = query.ApplySorting(request.SortBy, request.SortDirection);
+            }
+
+            return await query.ToPagedResponseAsync<Team, TeamDto>(request, _mapper);
         }
 
         public async Task<TeamDto?> GetByIdAsync(int id)

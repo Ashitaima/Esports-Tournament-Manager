@@ -3,6 +3,9 @@ using Computational_Practice.Data.Interfaces;
 using Computational_Practice.DTOs;
 using Computational_Practice.Models;
 using Computational_Practice.Services.Interfaces;
+using Computational_Practice.Common;
+using Computational_Practice.Common.Filters;
+using Computational_Practice.Extensions;
 
 namespace Computational_Practice.Services
 {
@@ -21,6 +24,46 @@ namespace Computational_Practice.Services
         {
             var users = await _unitOfWork.Users.GetAllAsync();
             return _mapper.Map<IEnumerable<UserDto>>(users);
+        }
+
+        public async Task<PagedResponse<UserDto>> GetPagedAsync(PagedRequest request, UserFilter? filter = null)
+        {
+            var query = _unitOfWork.Users.GetQueryable();
+
+            if (filter != null)
+            {
+                if (!string.IsNullOrEmpty(filter.Role))
+                {
+                    query = query.Where(u => u.Role == filter.Role);
+                }
+
+                if (filter.IsActive.HasValue)
+                {
+                    query = query.Where(u => u.IsActive == filter.IsActive.Value);
+                }
+
+                if (filter.CreatedFrom.HasValue)
+                {
+                    query = query.Where(u => u.CreatedAt >= filter.CreatedFrom.Value);
+                }
+
+                if (filter.CreatedTo.HasValue)
+                {
+                    query = query.Where(u => u.CreatedAt <= filter.CreatedTo.Value);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.Search))
+            {
+                query = query.ApplySearch(request.Search, "Username", "Email");
+            }
+
+            if (!string.IsNullOrEmpty(request.SortBy))
+            {
+                query = query.ApplySorting(request.SortBy, request.SortDirection);
+            }
+
+            return await query.ToPagedResponseAsync<User, UserDto>(request, _mapper);
         }
 
         public async Task<UserDto?> GetByIdAsync(int id)

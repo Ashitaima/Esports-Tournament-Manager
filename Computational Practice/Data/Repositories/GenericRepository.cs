@@ -26,6 +26,11 @@ namespace Computational_Practice.Data.Repositories
             return await _dbSet.ToListAsync();
         }
 
+        public virtual IQueryable<T> GetQueryable()
+        {
+            return _dbSet.AsQueryable();
+        }
+
         public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> expression)
         {
             return await _dbSet.Where(expression).ToListAsync();
